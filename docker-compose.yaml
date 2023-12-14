@@ -1,160 +1,202 @@
-version: "2.4"
+version: "3.8"
 services:
   jackett:
-    image: linuxserver/jackett
     container_name: jackett
-    volumes:
-    - ./config/jackett:/config
-    - /var/lib/watchtower/downloads:/downloads
-    ports:
-    - 9117:9117
     env_file: .env
+    image: linuxserver/jackett
     labels:
-    - traefik.enable=true
-    - traefik.http.routers.jackett.rule=Host(`jackett.${DOMAIN}`)
+      - traefik.enable=true
+      - traefik.http.routers.jackett.rule=Host(`jackett.${DOMAIN}`)
+    profiles: ['jackett']
+    ports:
+      - 9117:9117
+    volumes:
+      - ./config/jackett:/config
+      - /var/lib/watchtower/downloads:/downloads
   lidarr:
-    image: linuxserver/lidarr
     container_name: lidarr
-    volumes:
-    - ./config/lidarr:/config
-    - /var/lib/watchtower/downloads:/downloads
-    - /var/lib/watchtower/music:/music
-    ports:
-    - 8686:8686
     env_file: .env
+    image: linuxserver/lidarr
     labels:
-    - traefik.enable=true
-    - traefik.http.routers.lidarr.rule=Host(`lidarr.${DOMAIN}`)
+      - traefik.enable=true
+      - traefik.http.routers.lidarr.rule=Host(`lidarr.${DOMAIN}`)
+    profiles: ['full']
+    ports:
+      - 8686:8686
+    volumes:
+      - ./config/lidarr:/config
+      - /var/lib/watchtower/downloads:/downloads
+      - /var/lib/watchtower/music:/music
   ombi:
-    image: linuxserver/ombi
     container_name: ombi
     env_file: .env
-    volumes:
-    - ./config/ombi:/config
+    image: linuxserver/ombi
+    profiles: ['ombi']
     labels:
-    - traefik.enable=true
-    - traefik.http.routers.ombi.rule=Host(`ombi.${DOMAIN}`)
-  plex:
-    image: plexinc/pms-docker:plexpass
-    container_name: plex
-    hostname: watchtower
-    devices:
-    - /dev/dri
+      - traefik.enable=true
+      - traefik.http.routers.ombi.rule=Host(`ombi.${DOMAIN}`)
     volumes:
-    - ./config/plex:/config
-    - /var/lib/plex/data:/data
-    - /var/lib/plex/transcode:/transcode
-    - /var/lib/watchtower/movies:/data/movies
-    - /var/lib/watchtower/tv:/data/tv
+      - ./config/ombi:/config
+  overseerr:
+    container_name: overseerr
+    env_file: .env
+    image: linuxserver/overseerr
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.overseerr.rule=Host(`overseerr.${DOMAIN}`)
+    profiles: ['full', 'recommended']
+    volumes:
+      - ./config/overseerr:/config
+  plex:
+    container_name: plex
+    # devices:
+    # - /dev/dri
     env_file: .env
     environment:
-    - ADVERTISE_IP=http://${HOST_IP}:32400/
-    - PLEX_CLAIM=${PLEX_CLAIM}
-    - PLEX_GID=1000
-    - PLEX_UID=1000
-    - UMASK_SET=022
-    - VERSION=docker
-    ports:
-    - 32400:32400
-    - 3005:3005
-    - 8324:8324
-    - 32469:32469
-    - 1900:1900/udp
-    - 32410:32410/udp
-    - 32412:32412/udp
-    - 32413:32413/udp
-    - 32414:32414/udp
+      - ADVERTISE_IP=http://${HOST_IP}:32400/
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - NVIDIA_VISIBLE_DEVICES=all
+      - PLEX_CLAIM=${PLEX_CLAIM}
+      - PLEX_GID=1000
+      - PLEX_UID=1000
+      - UMASK_SET=022
+      - VERSION=plexpass
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+    hostname: watchtower
+    image: plexinc/pms-docker:plexpass
     labels:
-    - traefik.enable=true
-    - traefik.http.routers.plex.rule=Host(`plex.${DOMAIN}`)
-    - traefik.http.services.plex.loadbalancer.server.port=32400
-  portainer:
-    image: portainer/portainer-ce
-    container_name: portainer
+      - traefik.enable=true
+      - traefik.http.routers.plex.rule=Host(`plex.${DOMAIN}`)
+      - traefik.http.services.plex.loadbalancer.server.port=32400
+    network_mode: host
+    profiles: ['core', 'full', 'recommended']
+    # ports:
+    #   - 1900:1900/udp
+    #   - 3005:3005
+    #   - 8324:8324
+    #   - 32469:32469
+    #   - 32400:32400
+    #   - 32410:32410/udp
+    #   - 32412:32412/udp
+    #   - 32413:32413/udp
+    #   - 32414:32414/udp
+    runtime: nvidia
     volumes:
-    - ./config/portainer/data:/data
-    - /var/run/docker.sock:/var/run/docker.sock
-    ports:
-    - 9000:9000
-    env_file: .env
+      - ${PLEX_CONFIG_PATH}:/config
+      - ${PLEX_MISC_PATH}:/data/misc
+      - ${PLEX_MOVIE_PATH}:/data/movies
+      - ${PLEX_TRANSCODE_PATH}:/transcode
+      - ${PLEX_TV_PATH}:/data/tvshows
+  portainer:
     command: -H unix:///var/run/docker.sock
+    container_name: portainer
+    env_file: .env
+    image: portainer/portainer-ce
     labels:
-    - traefik.enable=true
-    - traefik.http.routers.portainer.rule=Host(`portainer.${DOMAIN}`)
-    - traefik.http.services.portainer.loadbalancer.server.port=9000
+      - traefik.enable=true
+      - traefik.http.routers.portainer.rule=Host(`portainer.${DOMAIN}`)
+      - traefik.http.services.portainer.loadbalancer.server.port=9000
+    profiles: ['core', 'full', 'recommended']
+    ports:
+      - 9000:9000
+    volumes:
+      - ./config/portainer/data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+  prowlarr:
+    container_name: prowlarr
+    env_file: .env
+    image: linuxserver/prowlarr
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.prowlarr.rule=Host(`prowlarr.${DOMAIN}`)
+    profiles: ['full', 'recommended']
+    ports:
+      - 9696:9696
+    volumes:
+      - ./config/prowlarr:/config
+      - /var/lib/watchtower/downloads:/downloads
   qbittorrent:
-    image: jovalle/qbittorrent-openvpn
     container_name: qbittorrent
+    env_file: .env
+    environment:
+      - LAN_NETWORK=${LAN_NETWORK}
+      - NAME_SERVERS=${NAME_SERVERS}
+      - VPN_ENABLED=yes
+      - WEBUI_PORT_ENV=10095
+    image: jovalle/qbittorrent-openvpn
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.qbittorrent.rule=Host(`qbittorrent.${DOMAIN}`)
+    profiles: ['full', 'recommended']
+    ports:
+      - 8999:8999
+      - 8999:8999/udp
+      - 10095:10095
     privileged: true
     volumes:
-    - ./config/qbittorrent:/config
-    - /var/lib/watchtower/downloads:/downloads
-    - /var/lib/watchtower:/media
-    ports:
-    - 8080:8080
-    - 8999:8999
-    - 8999:8999/udp
-    env_file: .env
-    environment:
-    - LAN_NETWORK=${LAN_NETWORK}
-    - NAME_SERVERS=${NAME_SERVERS}
-    - VPN_ENABLED=yes
-    - WEBUI_PORT_ENV=8080
-    labels:
-    - traefik.enable=true
-    - traefik.http.routers.qbittorrent.rule=Host(`qbittorrent.${DOMAIN}`)
+      - ./config/qbittorrent:/config
+      - /var/lib/watchtower/downloads:/downloads
+      - /var/lib/watchtower:/media
   radarr:
     image: linuxserver/radarr
     container_name: radarr
     depends_on:
-    - jackett
-    - qbittorrent
-    volumes:
-    - ./config/radarr:/config
-    - /var/lib/watchtower/movies:/movies
-    - /var/lib/watchtower/downloads:/downloads
-    ports:
-    - 7878:7878
+      - jackett
+      - qbittorrent
     env_file: .env
     labels:
-    - traefik.enable=true
-    - traefik.http.routers.radarr.rule=Host(`radarr.${DOMAIN}`)
+      - traefik.enable=true
+      - traefik.http.routers.radarr.rule=Host(`radarr.${DOMAIN}`)
+    profiles: ['full', 'recommended']
+    ports:
+      - 7878:7878
+    volumes:
+      - ./config/radarr:/config
+      - /var/lib/watchtower/movies:/movies
+      - /var/lib/watchtower/downloads:/downloads
   sonarr:
-    image: linuxserver/sonarr
     container_name: sonarr
+    image: linuxserver/sonarr
     depends_on:
-    - jackett
-    - qbittorrent
-    volumes:
-    - ./config/sonarr:/config
-    - /var/lib/watchtower/downloads:/downloads
-    - /var/lib/watchtower/tv:/tv
-    ports:
-    - 8989:8989
+      - jackett
+      - qbittorrent
     env_file: .env
     labels:
-    - traefik.enable=true
-    - traefik.http.routers.sonarr.rule=Host(`sonarr.${DOMAIN}`)
+      - traefik.enable=true
+      - traefik.http.routers.sonarr.rule=Host(`sonarr.${DOMAIN}`)
+    profiles: ['full', 'recommended']
+    ports:
+      - 8989:8989
+    volumes:
+      - ./config/sonarr:/config
+      - /var/lib/watchtower/downloads:/downloads
+      - /var/lib/watchtower/tv:/tv
   tautulli:
-    image: tautulli/tautulli
     container_name: tautulli
-    volumes:
-    - ./config/tautulli:/config
-    - ./config/plex/Library/Application\ Support/Plex\ Media\ Server/Logs
-    ports:
-    - 8181:8181
+    image: tautulli/tautulli
     env_file: .env
     labels:
-    - traefik.enable=true
-    - traefik.http.routers.tautulli.rule=Host(`tautulli.${DOMAIN}`)
-  traefik:
-    image: traefik:v2.2
-    container_name: traefik
-    volumes:
-    - ./traefik.toml:/traefik.toml
-    - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik.enable=true
+      - traefik.http.routers.tautulli.rule=Host(`tautulli.${DOMAIN}`)
+    profiles: ['full', 'recommended']
     ports:
-    - 80:80
-    - 443:443
-    - 9000:8080
+      - 8181:8181
+    volumes:
+      - ./config/tautulli:/config
+      - ./config/plex/Library/Application\ Support/Plex\ Media\ Server/Logs
+  traefik:
+    container_name: traefik
     env_file: .env
+    image: traefik:v2.2
+    profiles: ['core', 'full', 'recommended']
+    ports:
+      - 80:80
+      - 443:443
+      - 8080:8080
+    volumes:
+      - ./traefik.toml:/traefik.toml
+      - /var/run/docker.sock:/var/run/docker.sock:ro

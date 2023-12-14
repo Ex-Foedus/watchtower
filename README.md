@@ -7,20 +7,18 @@ Configurations for my HTPC.
 Set to `.env`. Referenced in the systemd unit and in each Docker Compose service that supports PUID/PGID env vars. Contains much of the following:
 
 ```
-# general
+DOMAIN=example.com
 PUID=1000
 PGID=1000
+PROFILE="--profile core --profile recommended"
 TZ="America/New_York"
 
-# for traefik
-DOMAIN=example.com
-
-# for plex
-PLEX_CLAIM=claim-1234
+# Plex
 HOST_IP=192.168.0.2
 LAN_NETWORK=192.168.0.0/24
+PLEX_CLAIM=claim-1234
 
-# for qbittorrent
+# qBittorrent
 NAME_SERVERS=1.1.1.1,1.0.0.1
 ```
 
