@@ -11,8 +11,8 @@ services:
     ports:
       - 9117:9117
     volumes:
+      - ${DOWNLOADS_PATH}:/downloads
       - ./config/jackett:/config
-      - /var/lib/watchtower/downloads:/downloads
   lidarr:
     container_name: lidarr
     env_file: .env
@@ -24,9 +24,9 @@ services:
     ports:
       - 8686:8686
     volumes:
+      - ${DOWNLOADS_PATH}:/downloads
+      - ${MUSIC_PATH}:/music
       - ./config/lidarr:/config
-      - /var/lib/watchtower/downloads:/downloads
-      - /var/lib/watchtower/music:/music
   ombi:
     container_name: ombi
     env_file: .env
@@ -86,11 +86,11 @@ services:
     #   - 32414:32414/udp
     runtime: nvidia
     volumes:
-      - ${PLEX_CONFIG_PATH}:/config
-      - ${PLEX_MISC_PATH}:/data/misc
-      - ${PLEX_MOVIE_PATH}:/data/movies
-      - ${PLEX_TRANSCODE_PATH}:/transcode
-      - ${PLEX_TV_PATH}:/data/tvshows
+      - ${CONFIG_PATH}:/config
+      - ${MISC_PATH}:/data/misc
+      - ${MOVIES_PATH}:/data/movies
+      - ${TRANSCODE_PATH}:/transcode
+      - ${TVSHOWS_PATH}:/data/tvshows
   portainer:
     command: -H unix:///var/run/docker.sock
     container_name: portainer
@@ -117,8 +117,8 @@ services:
     ports:
       - 9696:9696
     volumes:
+      - ${DOWNLOADS_PATH}:/downloads
       - ./config/prowlarr:/config
-      - /var/lib/watchtower/downloads:/downloads
   qbittorrent:
     container_name: qbittorrent
     env_file: .env
@@ -138,9 +138,8 @@ services:
       - 10095:10095
     privileged: true
     volumes:
+      - ${DOWNLOADS_PATH}:/downloads
       - ./config/qbittorrent:/config
-      - /var/lib/watchtower/downloads:/downloads
-      - /var/lib/watchtower:/media
   radarr:
     image: linuxserver/radarr
     container_name: radarr
@@ -155,9 +154,9 @@ services:
     ports:
       - 7878:7878
     volumes:
+      - ${DOWNLOADS_PATH}:/downloads
+      - ${MOVIES_PATH}:/movies
       - ./config/radarr:/config
-      - /var/lib/watchtower/movies:/movies
-      - /var/lib/watchtower/downloads:/downloads
   sonarr:
     container_name: sonarr
     image: linuxserver/sonarr
@@ -172,9 +171,9 @@ services:
     ports:
       - 8989:8989
     volumes:
+      - ${DOWNLOADS_PATH}:/downloads
+      - ${TVSHOWS_PATH}:/tv
       - ./config/sonarr:/config
-      - /var/lib/watchtower/downloads:/downloads
-      - /var/lib/watchtower/tv:/tv
   tautulli:
     container_name: tautulli
     image: tautulli/tautulli
@@ -186,8 +185,8 @@ services:
     ports:
       - 8181:8181
     volumes:
-      - ./config/tautulli:/config
       - ./config/plex/Library/Application\ Support/Plex\ Media\ Server/Logs
+      - ./config/tautulli:/config
   traefik:
     command:
       - --api.dashboard=true
@@ -239,3 +238,5 @@ services:
     image: containrrr/watchtower
     profiles: ['core', 'full', 'recommended']
     restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
