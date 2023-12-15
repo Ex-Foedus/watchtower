@@ -6,7 +6,7 @@ services:
     image: linuxserver/jackett
     labels:
       - traefik.enable=true
-      - traefik.http.routers.jackett.rule=Host(`jackett.${DOMAIN}`)
+      - traefik.http.routers.jackett.rule=Host(`jackett.watchtower.${DOMAIN}`)
     profiles: ['jackett']
     ports:
       - 9117:9117
@@ -19,7 +19,7 @@ services:
     image: linuxserver/lidarr
     labels:
       - traefik.enable=true
-      - traefik.http.routers.lidarr.rule=Host(`lidarr.${DOMAIN}`)
+      - traefik.http.routers.lidarr.rule=Host(`lidarr.watchtower.${DOMAIN}`)
     profiles: ['full']
     ports:
       - 8686:8686
@@ -34,7 +34,7 @@ services:
     profiles: ['ombi']
     labels:
       - traefik.enable=true
-      - traefik.http.routers.ombi.rule=Host(`ombi.${DOMAIN}`)
+      - traefik.http.routers.ombi.rule=Host(`ombi.watchtower.${DOMAIN}`)
     volumes:
       - ./config/ombi:/config
   overseerr:
@@ -43,7 +43,7 @@ services:
     image: linuxserver/overseerr
     labels:
       - traefik.enable=true
-      - traefik.http.routers.overseerr.rule=Host(`overseerr.${DOMAIN}`)
+      - traefik.http.routers.overseerr.rule=Host(`overseerr.watchtower.${DOMAIN}`)
     profiles: ['full', 'recommended']
     volumes:
       - ./config/overseerr:/config
@@ -70,7 +70,7 @@ services:
     image: plexinc/pms-docker:plexpass
     labels:
       - traefik.enable=true
-      - traefik.http.routers.plex.rule=Host(`plex.${DOMAIN}`)
+      - traefik.http.routers.plex.rule=Host(`watchtower.${DOMAIN}`)
       - traefik.http.services.plex.loadbalancer.server.port=32400
     network_mode: host
     profiles: ['core', 'full', 'recommended']
@@ -98,7 +98,7 @@ services:
     image: portainer/portainer-ce
     labels:
       - traefik.enable=true
-      - traefik.http.routers.portainer.rule=Host(`portainer.${DOMAIN}`)
+      - traefik.http.routers.portainer.rule=Host(`portainer.watchtower.${DOMAIN}`)
       - traefik.http.services.portainer.loadbalancer.server.port=9000
     profiles: ['core', 'full', 'recommended']
     ports:
@@ -112,7 +112,7 @@ services:
     image: linuxserver/prowlarr
     labels:
       - traefik.enable=true
-      - traefik.http.routers.prowlarr.rule=Host(`prowlarr.${DOMAIN}`)
+      - traefik.http.routers.prowlarr.rule=Host(`prowlarr.watchtower.${DOMAIN}`)
     profiles: ['full', 'recommended']
     ports:
       - 9696:9696
@@ -130,7 +130,7 @@ services:
     image: jovalle/qbittorrent-openvpn
     labels:
       - traefik.enable=true
-      - traefik.http.routers.qbittorrent.rule=Host(`qbittorrent.${DOMAIN}`)
+      - traefik.http.routers.qbittorrent.rule=Host(`qbittorrent.watchtower.${DOMAIN}`)
     profiles: ['full', 'recommended']
     ports:
       - 8999:8999
@@ -150,7 +150,7 @@ services:
     env_file: .env
     labels:
       - traefik.enable=true
-      - traefik.http.routers.radarr.rule=Host(`radarr.${DOMAIN}`)
+      - traefik.http.routers.radarr.rule=Host(`radarr.watchtower.${DOMAIN}`)
     profiles: ['full', 'recommended']
     ports:
       - 7878:7878
@@ -167,7 +167,7 @@ services:
     env_file: .env
     labels:
       - traefik.enable=true
-      - traefik.http.routers.sonarr.rule=Host(`sonarr.${DOMAIN}`)
+      - traefik.http.routers.sonarr.rule=Host(`sonarr.watchtower.${DOMAIN}`)
     profiles: ['full', 'recommended']
     ports:
       - 8989:8989
@@ -181,7 +181,7 @@ services:
     env_file: .env
     labels:
       - traefik.enable=true
-      - traefik.http.routers.tautulli.rule=Host(`tautulli.${DOMAIN}`)
+      - traefik.http.routers.tautulli.rule=Host(`tautulli.watchtower.${DOMAIN}`)
     profiles: ['full', 'recommended']
     ports:
       - 8181:8181
@@ -189,14 +189,53 @@ services:
       - ./config/tautulli:/config
       - ./config/plex/Library/Application\ Support/Plex\ Media\ Server/Logs
   traefik:
+    command:
+      - --api.dashboard=true
+      - --certificatesresolvers.letsencrypt.acme.dnschallenge.provider=cloudflare
+      - --certificatesresolvers.letsencrypt.acme.dnschallenge.resolvers=1.1.1.1:53,8.8.8.8:53
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.letsencrypt.acme.dnschallenge=true
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entryPoint.scheme=https
+      - --entrypoints.web.http.redirections.entryPoint.to=websecure
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.websecure.http.tls=true
+      - --entrypoints.websecure.http.tls.certResolver=letsencrypt
+      - --entrypoints.websecure.http.tls.domains[0].main=${DOMAIN}
+      - --entrypoints.websecure.http.tls.domains[0].sans=*.${DOMAIN},*.watchtower.${DOMAIN}
+      - --log.level=DEBUG
+      - --providers.docker.exposedbydefault=true
+      - --providers.docker=true
+      - --serverstransport.insecureskipverify=true
     container_name: traefik
     env_file: .env
-    image: traefik:v2.2
+    extra_hosts:
+      - host.docker.internal:172.17.0.1
+    image: traefik
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.dashboard.rule=Host(`traefik.watchtower.${DOMAIN}`)
+      - traefik.http.routers.dashboard.tls=true
+      - traefik.http.routers.dashboard.entrypoints=websecure
+      - traefik.http.routers.dashboard.service=api@internal
     profiles: ['core', 'full', 'recommended']
     ports:
       - 80:80
-      - 443:443
       - 8080:8080
+      - 443:443
+    networks:
+      default: {}
+    restart: unless-stopped
     volumes:
-      - ./traefik.toml:/traefik.toml
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./letsencrypt:/letsencrypt
+      - /var/run/docker.sock:/var/run/docker.sock
+  watchtower:
+    container_name: watchtower
+    env_file: .env
+    environment:
+      WATCHTOWER_SCHEDULE: "0 0 1 * * *"
+      WATCHTOWER_CLEANUP: "true"
+      WATCHTOWER_DEBUG: "true"
+    image: containrrr/watchtower
+    profiles: ['core', 'full', 'recommended']
+    restart: unless-stopped
