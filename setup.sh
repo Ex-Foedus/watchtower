@@ -22,7 +22,7 @@ usage() {
   Commands:
     prepare              install required packages
     deploy               create and start service
-    delete               stop and disable service
+    uninstall            stop and disable service
 EOF
 }
 
@@ -70,11 +70,11 @@ prepare() {
 #
 
 deploy() {
-  test -d /etc/watchtower || abort "jovalle/watchtower must reside in /etc/watchtower"
+  test -d /var/lib/watchtower || abort "jovalle/watchtower must reside in /var/lib/watchtower"
 
   if [[ ! -f /etc/systemd/system/watchtower.service ]]; then
     pushd /etc/systemd/system
-    ln -s /etc/watchtower/watchtower.service
+    ln -s /var/lib/watchtower/watchtower.service
     popd
   fi
 
@@ -95,7 +95,7 @@ deploy() {
 # Stop and remove watchtower services
 #
 
-delete() {
+uninstall() {
   systemctl stop watchtower
   systemctl disable watchtower
   test -f /etc/systemd/system/watchtower.service && rm -f /etc/systemd/system/watchtower.service
@@ -113,7 +113,7 @@ while test $# -ne 0; do
     -v|--version) version; exit ;;
     prepare) prepare; ;;
     deploy) deploy; ;;
-    delete) delete; ;;
+    uninstall) uninstall; ;;
     *) usage; exit ;;
   esac
 done

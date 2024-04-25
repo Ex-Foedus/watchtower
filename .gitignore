@@ -1,4 +1,7 @@
-.*
-config
-data
-letsencrypt
+*.lock.hcl
+*.lock.info
+*.tfstate
+*.tfstate.backup
+.DS_Store
+.env
+.terraform

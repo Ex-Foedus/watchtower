@@ -1,233 +1,34 @@
-version: "3.8"
+---
 services:
-  jackett:
-    container_name: jackett
-    env_file: .env
-    image: linuxserver/jackett
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.jackett.rule=Host(`jackett.watchtower.${DOMAIN}`)
-    profiles: ['jackett']
-    ports:
-      - 9117:9117
-    volumes:
-      - ${DOWNLOADS_PATH}:/downloads
-      - ./config/jackett:/config
-  lidarr:
-    container_name: lidarr
-    env_file: .env
-    image: linuxserver/lidarr
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.lidarr.rule=Host(`lidarr.watchtower.${DOMAIN}`)
-    profiles: ['full']
-    ports:
-      - 8686:8686
-    volumes:
-      - ${DOWNLOADS_PATH}:/downloads
-      - ${MUSIC_PATH}:/music
-      - ./config/lidarr:/config
-  ombi:
-    container_name: ombi
-    env_file: .env
-    image: linuxserver/ombi
-    profiles: ['ombi']
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.ombi.rule=Host(`ombi.watchtower.${DOMAIN}`)
-    volumes:
-      - ./config/ombi:/config
-  overseerr:
-    container_name: overseerr
-    env_file: .env
-    image: linuxserver/overseerr
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.overseerr.rule=Host(`overseerr.watchtower.${DOMAIN}`)
-    profiles: ['full', 'recommended']
-    volumes:
-      - ./config/overseerr:/config
   plex:
     container_name: plex
-    # devices:
-    # - /dev/dri
-    env_file: .env
-    environment:
-      - ADVERTISE_IP=http://${HOST_IP}:32400/
-      - NVIDIA_DRIVER_CAPABILITIES=all
-      - NVIDIA_VISIBLE_DEVICES=all
-      - PLEX_CLAIM=${PLEX_CLAIM}
-      - PLEX_GID=1000
-      - PLEX_UID=1000
-      - UMASK_SET=022
-      - VERSION=plexpass
     deploy:
       resources:
         reservations:
           devices:
             - capabilities: [gpu]
-    hostname: watchtower
-    image: plexinc/pms-docker:plexpass
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.plex.rule=Host(`watchtower.${DOMAIN}`)
-      - traefik.http.services.plex.loadbalancer.server.port=32400
-    network_mode: host
-    profiles: ['core', 'full', 'recommended']
-    # ports:
-    #   - 1900:1900/udp
-    #   - 3005:3005
-    #   - 8324:8324
-    #   - 32469:32469
-    #   - 32400:32400
-    #   - 32410:32410/udp
-    #   - 32412:32412/udp
-    #   - 32413:32413/udp
-    #   - 32414:32414/udp
-    runtime: nvidia
-    volumes:
-      - ${CONFIG_PATH}:/config
-      - ${MISC_PATH}:/data/misc
-      - ${MOVIES_PATH}:/data/movies
-      - ${TRANSCODE_PATH}:/transcode
-      - ${TVSHOWS_PATH}:/data/tvshows
-  portainer:
-    command: -H unix:///var/run/docker.sock
-    container_name: portainer
-    env_file: .env
-    image: portainer/portainer-ce
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.portainer.rule=Host(`portainer.watchtower.${DOMAIN}`)
-      - traefik.http.services.portainer.loadbalancer.server.port=9000
-    profiles: ['core', 'full', 'recommended']
-    ports:
-      - 9000:9000
-    volumes:
-      - ./config/portainer/data:/data
-      - /var/run/docker.sock:/var/run/docker.sock
-  prowlarr:
-    container_name: prowlarr
-    env_file: .env
-    image: linuxserver/prowlarr
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.prowlarr.rule=Host(`prowlarr.watchtower.${DOMAIN}`)
-    profiles: ['full', 'recommended']
-    ports:
-      - 9696:9696
-    volumes:
-      - ${DOWNLOADS_PATH}:/downloads
-      - ./config/prowlarr:/config
-  qbittorrent:
-    container_name: qbittorrent
+    # devices:
+    # - /dev/dri
     env_file: .env
     environment:
-      - LAN_NETWORK=${LAN_NETWORK}
-      - NAME_SERVERS=${NAME_SERVERS}
-      - VPN_ENABLED=yes
-      - WEBUI_PORT_ENV=10095
-    image: jovalle/qbittorrent-openvpn
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.qbittorrent.rule=Host(`qbittorrent.watchtower.${DOMAIN}`)
-    profiles: ['full', 'recommended']
-    ports:
-      - 8999:8999
-      - 8999:8999/udp
-      - 10095:10095
-    privileged: true
+      - ADVERTISE_IP=http://${HOST_IP:?host ip required}:32400/
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - NVIDIA_VISIBLE_DEVICES=all
+      - PLEX_CLAIM=${PLEX_CLAIM:-claim-1234}
+      - PLEX_GID=${PGID:-1000}
+      - PLEX_UID=${PUID:-1000}
+      - UMASK_SET=022
+      - VERSION=plexpass
+    hostname: watchtower
+    image: plexinc/pms-docker:plexpass
+    network_mode: host
+    runtime: nvidia
     volumes:
-      - ${DOWNLOADS_PATH}:/downloads
-      - ./config/qbittorrent:/config
-  radarr:
-    image: linuxserver/radarr
-    container_name: radarr
-    depends_on:
-      - jackett
-      - qbittorrent
-    env_file: .env
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.radarr.rule=Host(`radarr.watchtower.${DOMAIN}`)
-    profiles: ['full', 'recommended']
-    ports:
-      - 7878:7878
-    volumes:
-      - ${DOWNLOADS_PATH}:/downloads
-      - ${MOVIES_PATH}:/movies
-      - ./config/radarr:/config
-  sonarr:
-    container_name: sonarr
-    image: linuxserver/sonarr
-    depends_on:
-      - jackett
-      - qbittorrent
-    env_file: .env
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.sonarr.rule=Host(`sonarr.watchtower.${DOMAIN}`)
-    profiles: ['full', 'recommended']
-    ports:
-      - 8989:8989
-    volumes:
-      - ${DOWNLOADS_PATH}:/downloads
-      - ${TVSHOWS_PATH}:/tv
-      - ./config/sonarr:/config
-  tautulli:
-    container_name: tautulli
-    image: tautulli/tautulli
-    env_file: .env
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.tautulli.rule=Host(`tautulli.watchtower.${DOMAIN}`)
-    profiles: ['full', 'recommended']
-    ports:
-      - 8181:8181
-    volumes:
-      - ./config/plex/Library/Application\ Support/Plex\ Media\ Server/Logs
-      - ./config/tautulli:/config
-  traefik:
-    command:
-      - --api.dashboard=true
-      - --certificatesresolvers.letsencrypt.acme.dnschallenge.provider=cloudflare
-      - --certificatesresolvers.letsencrypt.acme.dnschallenge.resolvers=1.1.1.1:53,8.8.8.8:53
-      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
-      - --certificatesresolvers.letsencrypt.acme.dnschallenge=true
-      - --entrypoints.web.address=:80
-      - --entrypoints.web.http.redirections.entryPoint.scheme=https
-      - --entrypoints.web.http.redirections.entryPoint.to=websecure
-      - --entrypoints.websecure.address=:443
-      - --entrypoints.websecure.http.tls=true
-      - --entrypoints.websecure.http.tls.certResolver=letsencrypt
-      - --entrypoints.websecure.http.tls.domains[0].main=${DOMAIN}
-      - --entrypoints.websecure.http.tls.domains[0].sans=*.${DOMAIN},*.watchtower.${DOMAIN}
-      - --log.level=DEBUG
-      - --providers.docker.exposedbydefault=true
-      - --providers.docker=true
-      - --serverstransport.insecureskipverify=true
-    container_name: traefik
-    env_file: .env
-    extra_hosts:
-      - host.docker.internal:172.17.0.1
-    image: traefik
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.dashboard.rule=Host(`traefik.watchtower.${DOMAIN}`)
-      - traefik.http.routers.dashboard.tls=true
-      - traefik.http.routers.dashboard.entrypoints=websecure
-      - traefik.http.routers.dashboard.service=api@internal
-    profiles: ['core', 'full', 'recommended']
-    ports:
-      - 80:80
-      - 8080:8080
-      - 443:443
-    networks:
-      default: {}
-    restart: unless-stopped
-    volumes:
-      - ./letsencrypt:/letsencrypt
-      - /var/run/docker.sock:/var/run/docker.sock
+      - ${CONFIG_PATH:-/var/lib/watchtower/plex}:/config
+      - ${MISC_PATH:-/var/lib/watchtower/misc}:/data/misc
+      - ${MOVIES_PATH:-/var/lib/watchtower/movies}:/data/movies
+      - ${TRANSCODE_PATH:-/dev/shm}:/transcode
+      - ${TVSHOWS_PATH:-/var/lib/watchtower/tvshows}:/data/tvshows
   watchtower:
     container_name: watchtower
     env_file: .env
@@ -236,7 +37,7 @@ services:
       WATCHTOWER_CLEANUP: "true"
       WATCHTOWER_DEBUG: "true"
     image: containrrr/watchtower
-    profiles: ['core', 'full', 'recommended']
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+...

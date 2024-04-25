@@ -1,0 +1,162 @@
+---
+- hosts: watchtower
+
+  pre_tasks:
+    - name: set hostname
+      shell: |
+        echo "{{ inventory_hostname }}" > /etc/hostname
+        hostname {{ inventory_hostname }}
+        hostnamectl set-hostname {{ inventory_hostname }}
+    - name: apt upgrade
+      apt:
+        autoclean: true
+        autoremove: true
+        cache_valid_time: 3600
+        update_cache: true
+        upgrade: full
+
+  tasks:
+
+    ## packages
+    - name: install packages
+      apt:
+        name: "{{ item }}"
+      with_items:
+        - ca-certificates
+        - cifs-utils
+        - curl
+        - dnsutils
+        - fio
+        - glances
+        - iftop
+        - iotop
+        - jq
+        - lm-sensors
+        - mediainfo
+        - net-tools
+        - nfs-common
+        - nvtop
+        - open-iscsi
+        - psmisc
+        - rsync
+
+    ## nvidia drivers
+    - name: install nvidia drivers
+      apt:
+        name: nvidia-driver
+      notify: restart host
+
+    - meta: flush_handlers
+
+    ## nvidia-patch
+    - name: check for patch backup
+      stat:
+        path: /opt/nvidia/libnvidia-encode-backup
+      register: patch_backup
+    - name: patch nvidia transcoder
+      block:
+        - name: create temp dir
+          tempfile:
+            state: directory
+          register: tempdir
+        - name: clone nvidia patch repo
+          git:
+            repo: https://github.com/keylase/nvidia-patch
+            dest: "{{ tempdir.path }}"
+        - name: run nvidia patch
+          shell: "{{ tempdir.path }}/patch.sh"
+      always:
+        - name: cleanup temp dir
+          file:
+            path: "{{ tempdir.path }}"
+            state: absent
+      when: not patch_backup.stat.exists
+
+    ## docker engine
+    - name: init keyrings
+      command: install -m 0755 -d /etc/apt/keyrings
+    - name: get apt signing key
+      get_url:
+        url: https://download.docker.com/linux/debian/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        mode: 0644
+    - name: add docker repo
+      copy:
+        dest: /etc/apt/sources.list.d/docker.list
+        content: |
+          deb [arch={{ 'amd64' if ansible_architecture == 'x86_64' }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable
+    - name: install docker
+      apt:
+        name: "{{ item }}"
+        update_cache: true
+      with_items:
+        - containerd.io
+        - docker-buildx-plugin
+        - docker-ce
+        - docker-ce-cli
+        - docker-compose
+        - docker-compose-plugin
+
+    ## nvidia-continer-toolkit
+    - name: get apt signing key
+      get_url:
+        url: https://nvidia.github.io/libnvidia-container/gpgkey
+        dest: /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+        mode: 0644
+    - name: add nvidia-container-toolkit repo
+      copy:
+        dest: /etc/apt/sources.list.d/nvidia-container-toolkit.list
+        content: |
+          deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://nvidia.github.io/libnvidia-container/stable/deb/$(ARCH) /
+    - name: install nvidia-container-toolkit
+      apt:
+        name: nvidia-container-toolkit
+        update_cache: true
+    - name: check daemon.json
+      stat:
+        path: /etc/docker/daemon.json
+        checksum_algorithm: sha256
+      register: docker_daemon_json
+    - name: configure runtime
+      command: nvidia-ctk runtime configure --runtime=docker
+    - name: check daemon.json again
+      stat:
+        path: /etc/docker/daemon.json
+        checksum_algorithm: sha256
+      register: docker_daemon_json_again
+    - name: restart docker
+      systemd:
+        name: docker
+        state: restarted
+      when: docker_daemon_json.stat.checksum != docker_daemon_json_again.stat.checksum
+    - name: run sample CUDA container
+      command: docker run --rm --runtime=nvidia --gpus all ubuntu nvidia-smi
+
+    ## watchtower service
+    - name: create watchtower dir
+      file:
+        path: /var/lib/watchtower
+        state: directory
+    - name: copy core files
+      copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+      with_items:
+        - { src: .env, dest: /var/lib/watchtower/ }
+        - { src: docker-compose.yaml, dest: /var/lib/watchtower/ }
+        - { src: watchtower.service, dest: /etc/systemd/system/ }
+      notify: reload systemd daemon
+    - name: start services
+      systemd:
+        name: watchtower
+        state: started
+
+  handlers:
+    - name: reboot host
+      reboot:
+        msg: "Host rebooted"
+        reboot_timeout: "{{ reboot_timeout | default(600) }}"
+    - name: reload systemd daemon
+      systemd_service:
+        daemon_reload: true
+...
