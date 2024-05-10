@@ -33,8 +33,7 @@ Mount your storage before deploying.
 ### Local
 
 ```sh
-./setup.sh prepare
-./setup.sh deploy
+make install
 ```
 
 ### Remote
