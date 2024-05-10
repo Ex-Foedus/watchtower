@@ -2,13 +2,13 @@
 services:
   plex:
     container_name: plex
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - capabilities: [gpu]
-    # devices:
-    # - /dev/dri
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - capabilities: [gpu]
+    devices:
+      - /dev/dri
     env_file: .env
     environment:
       - ADVERTISE_IP=http://${HOST_IP:?host ip required}:32400/
@@ -22,7 +22,7 @@ services:
     hostname: watchtower
     image: plexinc/pms-docker:plexpass
     network_mode: host
-    runtime: nvidia
+    # runtime: nvidia
     volumes:
       - ${CONFIG_PATH:-/var/lib/watchtower/plex}:/config
       - ${MISC_PATH:-/var/lib/watchtower/misc}:/data/misc
