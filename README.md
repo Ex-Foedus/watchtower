@@ -1,45 +1,78 @@
+<div align="center">
+
+<img src="./watchtower.jpeg" height="400px"/>
+
 # Watchtower
 
-Configurations for my HTPC.
+An automated configuration of my HTPC.
 
-## Prerequisites
+</div>
+
+## 📖 Overview
+
+Control center for my personal media (incl. ~2500 MP3s from the 90s and 00s). Powered by [terraform](https://terraform.io), [ansible](https://ansible.com), [docker](https://docker.com) and a few scripts.
+
+## 🐳 Docker Compose
+
+At the heart of the project is Docker, Docker Compose v2 to be specific. Makes for easy deployment to, and management of, a singular host.
+
+See `docker-compose.yaml` for the services deployed.
+
+
+## 🧰 Core Components
+
+- [Jellyfin](https://jellyfin.org): Plex competitor. Currently running comparisons. One advantage for Jellyfin is the lack of a SaaS and support for more media types (comics, audiobooks)
+- [Node Exporter](https://github.com/prometheus/node_exporter): Presents host resource metrics to be consumed by Prometheus and displayed by Grafana (see [Mothership](https://github.com/jovalle/mothership)).
+- [Plex](https://plex.tv): Organizes and streams media
+- [Traefik](https://traefik.io): Reverse proxy for serving other components with HTTPS enabled URLs. Using Let's Encrypt for quick and easy HTTPS certificates.
+- [Watchtower](https://containrrr.dev/watchtower/): No relation. 😅 Keeps an eye on colocated containers and updates them while I'm (hopefully) sleeping.
+
+## 📋 Prerequisites
 
 ### Environment File
 
-`.env` stores common variables to be referenced by virtually all docker compose services via `env_file`. See example below.
+`.env` stores common variables to be referenced by virtually all docker compose services via `env_file` parameter. See sample below.
 
-```
-DOMAIN=example.com
-PUID=1000
+```sh
+# general
+DOMAIN="example.com"
 PGID=1000
+PUID=1000
 TZ="America/New_York"
 
-# media
-CONFIG_PATH=/var/lib/plex
-DOWNLOADS_PATH=/mnt/media/downloads
-MISC_PATH=/mnt/media/misc
-MOVIES_PATH=/mnt/media/movies
-MUSIC_PATH=/mnt/media/music
-TVSHOWS_PATH=/mnt/media/tvshows
+# cloudflare
+CF_API_EMAIL=REDACTED
+CF_API_KEY=REDACTED
+CF_ZONE="example.com"
 
 # plex
-HOST_IP=192.168.0.2
+CONFIG_PATH=/var/lib/plex
+HOST_IP=192.168.1.2
+MISC_PATH=/mnt/hulkpool/misc
+MOVIES_PATH=/mnt/hulkpool/movies
+MUSIC_PATH=/mnt/hulkpool/music
+TVSHOWS_PATH=/mnt/whirlpool/tvshows
+
+# optional (if deploying containers remotely and without systemd)
+DOCKER_HOST_IP=${HOST_IP}
+DOCKER_HOST="ssh://root@${DOCKER_HOST_IP}"
 ```
 
-## Deployment
+## 🚀 Deployment
 
-Mount your storage before deploying.
+Ideally, `git clone` this repo at `/etc/watchtower` on the target host.
 
-### Local
+To deploy locally:
 
 ```sh
 make install
 ```
 
-### Remote
+To deploy remotely, ensure:
 
-```sh
-# update `ansible/hosts.yaml` before proceeding
-cd ansible/
-ansible-playbook deploy.yaml
-```
+- Host is accessible via SSH
+- Host has docker compose installed
+- SSH params are tweaked (`MaxStartups 200`)
+- `DOCKER_HOST` is set locally
+
+`make start`

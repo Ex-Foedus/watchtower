@@ -26,8 +26,8 @@ HELP_FMT = \
 
 #DEFAULT variables
 ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
-DOCKER_COMPOSE := docker-compose
-DOCKER_COMPOSE_FILE := $(ROOT_DIR)/$(DOCKER_COMPOSE).yaml
+DOCKER_COMPOSE := docker compose
+DOCKER_COMPOSE_FILE := $(ROOT_DIR)/docker-compose.yaml
 SYSTEMD_UNIT := $(ROOT_DIR)/watchtower.service
 EXTRA_UP_ARGS := --remove-orphans
 
@@ -35,17 +35,34 @@ install: ##@other Start and enable service
 	@apt update
 	@apt upgrade -y
 	@apt install -y \
-    apache2-utils \
 		btop \
+    apache2-utils \
+    btop \
+    ca-certificates \
+    cifs-utils \
     curl \
     dnsutils \
-    docker-compose \
+    extrepo \
+    fio \
+    glances \
+    htop \
+    iftop \
+    intel-gpu-tools \
+    iotop \
+    jq \
+    lm-sensors \
     mediainfo \
     ncdu \
+    neofetch \
     net-tools \
+    nfs-common \
+    open-iscsi \
+    psmisc \
     rsync \
     software-properties-common \
+    sudo \
     vim
+	@scripts/install-docker.sh
 	@apt autoremove -y
 	@ln -sf $(SYSTEMD_UNIT) /etc/systemd/system/watchtower.service
 	@systemctl daemon-reload
@@ -87,4 +104,4 @@ status: ## List all containers
 ps: status
 
 clean: confirm ## Delete all containers
-	@$(DOCKER_COMPOSE) down
+	@$(DOCKER_COMPOSE) down -v

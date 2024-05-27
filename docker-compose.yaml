@@ -1,19 +1,42 @@
 ---
 services:
+  jellyfin:
+    container_name: jellyfin
+    devices:
+      - /dev/dri
+    env_file: .env
+    environment:
+      - JELLYFIN_PublishedServerUrl=https://jellyfin.${DOMAIN}
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    image: jellyfin/jellyfin
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.jellyfin.rule=host(`jellyfin.${DOMAIN}`)
+      - traefik.http.services.jellyfin.loadbalancer.server.port=8096
+    network_mode: host
+    volumes:
+      - /var/lib/watchtower/jellyfin:/config
+      - ${MISC_PATH:-/var/lib/watchtower/misc}:/data/misc
+      - ${MOVIES_PATH:-/var/lib/watchtower/movies}:/data/movies
+      - ${TRANSCODE_PATH:-/dev/shm}:/transcode
+      - ${TVSHOWS_PATH:-/var/lib/watchtower/tvshows}:/data/tvshows
+  node-exporter:
+    command: --path.rootfs=/host
+    container_name: node-exporter
+    image: quay.io/prometheus/node-exporter
+    ports:
+      - 9100:9100
+    restart: unless-stopped
+    volumes:
+      - /:/host:ro,rslave
   plex:
     container_name: plex
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - capabilities: [gpu]
     devices:
       - /dev/dri
     env_file: .env
     environment:
       - ADVERTISE_IP=http://${HOST_IP:?host ip required}:32400/
-      - NVIDIA_DRIVER_CAPABILITIES=all
-      - NVIDIA_VISIBLE_DEVICES=all
       - PLEX_CLAIM=${PLEX_CLAIM:-claim-1234}
       - PLEX_GID=${PGID:-1000}
       - PLEX_UID=${PUID:-1000}
@@ -21,23 +44,66 @@ services:
       - VERSION=plexpass
     hostname: watchtower
     image: plexinc/pms-docker:plexpass
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.plex.rule=host(`watchtower.${DOMAIN}`)
+      - traefik.http.services.plex.loadbalancer.server.port=32400
+      - traefik.http.services.plex.loadbalancer.server.url=http://127.0.0.1:32400
     network_mode: host
-    # runtime: nvidia
     volumes:
       - ${CONFIG_PATH:-/var/lib/watchtower/plex}:/config
       - ${MISC_PATH:-/var/lib/watchtower/misc}:/data/misc
       - ${MOVIES_PATH:-/var/lib/watchtower/movies}:/data/movies
-      - ${TRANSCODE_PATH:-/dev/shm}:/transcode
+      - ${TRANSCODE_PATH:-/var/lib/watchtower/transcode}:/transcode
       - ${TVSHOWS_PATH:-/var/lib/watchtower/tvshows}:/data/tvshows
+  traefik:
+    command:
+      - --api.dashboard=true
+      - --certificatesresolvers.letsencrypt.acme.dnschallenge.provider=cloudflare
+      - --certificatesresolvers.letsencrypt.acme.dnschallenge.resolvers=1.1.1.1:53,8.8.8.8:53
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.letsencrypt.acme.dnschallenge=true
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entryPoint.scheme=https
+      - --entrypoints.web.http.redirections.entryPoint.to=websecure
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.websecure.http.tls=true
+      - --entrypoints.websecure.http.tls.certResolver=letsencrypt
+      - --entrypoints.websecure.http.tls.domains[0].main=${DOMAIN}
+      - --entrypoints.websecure.http.tls.domains[0].sans=*.${DOMAIN},*.${DOMAIN}
+      - --log.level=DEBUG
+      - --providers.docker.exposedbydefault=true
+      - --providers.docker=true
+      - --serverstransport.insecureskipverify=true
+    container_name: traefik
+    env_file: .env
+    extra_hosts:
+      - host.docker.internal:172.17.0.1
+    image: traefik
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.dashboard.rule=Host(`traefik.${DOMAIN}`)
+      - traefik.http.routers.dashboard.tls=true
+      - traefik.http.routers.dashboard.entrypoints=websecure
+      - traefik.http.routers.dashboard.service=api@internal
+    networks:
+      default: {}
+    ports:
+      - 80:80
+      - 8080:8080
+      - 443:443
+    restart: unless-stopped
+    volumes:
+      - /var/lib/watchtower/letsencrypt:/letsencrypt
+      - /var/run/docker.sock:/var/run/docker.sock
   watchtower:
     container_name: watchtower
     env_file: .env
     environment:
-      WATCHTOWER_SCHEDULE: "0 0 1 * * *"
+      WATCHTOWER_SCHEDULE: "0 0 4 * * *"
       WATCHTOWER_CLEANUP: "true"
       WATCHTOWER_DEBUG: "true"
     image: containrrr/watchtower
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-...
