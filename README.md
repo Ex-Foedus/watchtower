@@ -75,4 +75,6 @@ To deploy remotely, ensure:
 - SSH params are tweaked (`MaxStartups 200`)
 - `DOCKER_HOST` is set locally
 
-`make start`
+```sh
+make start
+```
