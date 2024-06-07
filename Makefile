@@ -32,38 +32,8 @@ SYSTEMD_UNIT := $(ROOT_DIR)/watchtower.service
 EXTRA_UP_ARGS := --remove-orphans
 
 install: ##@other Start and enable service
-	@apt update
-	@apt upgrade -y
-	@apt install -y \
-		btop \
-    apache2-utils \
-    btop \
-    ca-certificates \
-    cifs-utils \
-    curl \
-    dnsutils \
-    extrepo \
-    fio \
-    glances \
-    htop \
-    iftop \
-    intel-gpu-tools \
-    iotop \
-    jq \
-    lm-sensors \
-    mediainfo \
-    ncdu \
-    neofetch \
-    net-tools \
-    nfs-common \
-    open-iscsi \
-    psmisc \
-    rsync \
-    software-properties-common \
-    sudo \
-    vim
+	@scripts/install-packages.sh
 	@scripts/install-docker.sh
-	@apt autoremove -y
 	@ln -sf $(SYSTEMD_UNIT) /etc/systemd/system/watchtower.service
 	@systemctl daemon-reload
 	@systemctl start watchtower
