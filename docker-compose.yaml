@@ -9,12 +9,14 @@ services:
       - JELLYFIN_PublishedServerUrl=https://jellyfin.${DOMAIN}
     extra_hosts:
       - host.docker.internal:host-gateway
+    hostname: jellyfin
     image: jellyfin/jellyfin
     labels:
       - traefik.enable=true
       - traefik.http.routers.jellyfin.rule=host(`jellyfin.${DOMAIN}`)
       - traefik.http.services.jellyfin.loadbalancer.server.port=8096
     network_mode: host
+    restart: unless-stopped
     volumes:
       - /var/lib/watchtower/jellyfin:/config
       - ${MISC_PATH:-/var/lib/watchtower/misc}:/data/misc
@@ -24,6 +26,7 @@ services:
   node-exporter:
     command: --path.rootfs=/host
     container_name: node-exporter
+    hostname: node-exporter
     image: quay.io/prometheus/node-exporter
     ports:
       - 9100:9100
@@ -50,6 +53,7 @@ services:
       - traefik.http.services.plex.loadbalancer.server.port=32400
       - traefik.http.services.plex.loadbalancer.server.url=http://127.0.0.1:32400
     network_mode: host
+    restart: unless-stopped
     volumes:
       - ${CONFIG_PATH:-/var/lib/watchtower/plex}:/config
       - ${MISC_PATH:-/var/lib/watchtower/misc}:/data/misc
@@ -59,6 +63,7 @@ services:
   traefik:
     command:
       - --api.dashboard=true
+      - --api.insecure=true
       - --certificatesresolvers.letsencrypt.acme.dnschallenge.provider=cloudflare
       - --certificatesresolvers.letsencrypt.acme.dnschallenge.resolvers=1.1.1.1:53,8.8.8.8:53
       - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
@@ -79,6 +84,7 @@ services:
     env_file: .env
     extra_hosts:
       - host.docker.internal:172.17.0.1
+    hostname: traefik
     image: traefik
     labels:
       - traefik.enable=true
