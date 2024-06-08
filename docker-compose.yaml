@@ -171,6 +171,32 @@ services:
       - ${MOVIES_PATH:-/var/lib/watchtower/movies}:/data/movies
       - ${TRANSCODE_PATH:-/var/lib/watchtower/transcode}:/transcode
       - ${TVSHOWS_PATH:-/var/lib/watchtower/tvshows}:/data/tvshows
+  portainer:
+    command: -H unix:///var/run/docker.sock
+    container_name: portainer
+    env_file: .env
+    hostname: portainer
+    image: portainer/portainer-ce
+    labels:
+      - homepage.group=Core
+      - homepage.name=Portainer
+      - homepage.icon=portainer
+      - homepage.href=https://portainer.${DOMAIN}
+      - homepage.description=Container management
+      - homepage.widget.type=portainer
+      - homepage.widget.env=1
+      - homepage.widget.url=https://portainer.${DOMAIN}
+      - homepage.widget.key=${PORTAINER_API_KEY}
+      - homepage.widget.fields=["running", "stopped", "total"]
+      - traefik.enable=true
+      - traefik.http.routers.portainer.rule=Host(`portainer.${DOMAIN}`)
+      - traefik.http.services.portainer.loadbalancer.server.port=9000
+    ports:
+      - 9000:9000
+    restart: unless-stopped
+    volumes:
+      - /var/lib/watchtower/portainer:/data
+      - /var/run/docker.sock:/var/run/docker.sock
   prowlarr:
     container_name: prowlarr
     env_file: .env
