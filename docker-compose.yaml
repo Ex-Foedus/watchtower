@@ -19,6 +19,27 @@ services:
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+  flaresolverr:
+    container_name: flaresolverr
+    env_file: .env
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - LOG_HTML=${LOG_HTML:-false}
+      - CAPTCHA_SOLVER=${CAPTCHA_SOLVER:-none}
+    image: ghcr.io/flaresolverr/flaresolverr
+    labels:
+      - homepage.group=Media
+      - homepage.name=Flaresolverr
+      - homepage.icon=flaresolverr
+      - homepage.href=https://flaresolverr.${DOMAIN}
+      - homepage.description=Proxy server to bypass Cloudflare protections
+      - traefik.enable=true
+      - traefik.http.routers.flaresolverr.rule=Host(`flaresolverr.${DOMAIN}`)
+    ports:
+      - 8191:8191
+    restart: unless-stopped
+    volumes:
+      - /var/lib/watchtower/flaresolverr:/config
   homepage:
     container_name: homepage
     env_file: .env
@@ -72,6 +93,27 @@ services:
     restart: unless-stopped
     volumes:
       - /:/host:ro,rslave
+  overseerr:
+    container_name: overseerr
+    env_file: .env
+    hostname: overseerr
+    image: lscr.io/linuxserver/overseerr
+    labels:
+      - homepage.group=Media
+      - homepage.name=Overseerr
+      - homepage.icon=overseerr
+      - homepage.href=https://overseerr.${DOMAIN_EXT}
+      - homepage.description=Media Server Request Management
+      - homepage.widget.type=overseerr
+      - homepage.widget.url=http://overseerr:5055
+      - homepage.widget.key=${OVERSEER_API_KEY}
+      - traefik.enable=true
+      - traefik.http.routers.overseerr.rule=Host(`overseerr.${DOMAIN}`)
+    restart: unless-stopped
+    ports:
+      - 5055:5055
+    volumes:
+      - /var/lib/watchtower/overseerr:/config
   plex:
     container_name: plex
     devices:
@@ -108,6 +150,101 @@ services:
       - ${MOVIES_PATH:-/var/lib/watchtower/movies}:/data/movies
       - ${TRANSCODE_PATH:-/var/lib/watchtower/transcode}:/transcode
       - ${TVSHOWS_PATH:-/var/lib/watchtower/tvshows}:/data/tvshows
+  prowlarr:
+    container_name: prowlarr
+    env_file: .env
+    hostname: prowlarr
+    image: lscr.io/linuxserver/prowlarr
+    labels:
+      - homepage.group=Media
+      - homepage.name=Prowlarr
+      - homepage.icon=prowlarr
+      - homepage.href=https://prowlarr.${DOMAIN}
+      - homepage.description=*arr-based Indexer Manager
+      - homepage.widget.type=prowlarr
+      - homepage.widget.url=http://prowlarr:9696
+      - homepage.widget.key=${PROWLARR_API_KEY}
+      - traefik.enable=true
+      - traefik.http.routers.prowlarr.rule=Host(`prowlarr.${DOMAIN}`)
+    ports:
+      - 9696:9696
+    restart: unless-stopped
+    volumes:
+      - ${DOWNLOADS_PATH:-/var/lib/watchtower/downloads}:/downloads
+      - /var/lib/watchtower/prowlarr:/config
+  radarr:
+    container_name: radarr
+    depends_on:
+      - prowlarr
+      - qbittorrent
+    env_file: .env
+    hostname: radarr
+    image: lscr.io/linuxserver/radarr
+    labels:
+      - homepage.group=Media
+      - homepage.name=Radarr
+      - homepage.icon=radarr
+      - homepage.href=https://radarr.${DOMAIN}
+      - homepage.description=Personal Movie Curator
+      - homepage.widget.type=radarr
+      - homepage.widget.url=http://radarr:7878
+      - homepage.widget.key=${RADARR_API_KEY}
+      - traefik.enable=true
+      - traefik.http.routers.radarr.rule=Host(`radarr.${DOMAIN}`)
+    ports:
+      - 7878:7878
+    restart: unless-stopped
+    volumes:
+      - ${DOWNLOADS_PATH:-/var/lib/watchtower/downloads}:/downloads
+      - ${MOVIES_PATH:-/var/lib/watchtower/movies}:/movies
+      - /var/lib/watchtower/radarr:/config
+  sonarr:
+    container_name: sonarr
+    depends_on:
+      - prowlarr
+      - qbittorrent
+    env_file: .env
+    hostname: sonarr
+    image: lscr.io/linuxserver/sonarr
+    labels:
+      - homepage.group=Media
+      - homepage.name=Sonarr
+      - homepage.icon=sonarr
+      - homepage.href=https://sonarr.${DOMAIN}
+      - homepage.description=Personal TV Curator
+      - homepage.widget.type=sonarr
+      - homepage.widget.url=http://sonarr:8989
+      - homepage.widget.key=${SONARR_API_KEY}
+      - traefik.enable=true
+      - traefik.http.routers.sonarr.rule=Host(`sonarr.${DOMAIN}`)
+    ports:
+      - 8989:8989
+    restart: unless-stopped
+    volumes:
+      - ${DOWNLOADS_PATH:-/var/lib/watchtower/downloads}:/downloads
+      - ${TVSHOWS_PATH:-/var/lib/watchtower/tvshows}:/tv
+      - /var/lib/watchtower/sonarr:/config
+  tautulli:
+    container_name: tautulli
+    env_file: .env
+    hostname: tautulli
+    image: lscr.io/linuxserver/tautulli
+    labels:
+      - homepage.group=Media
+      - homepage.name=Tautulli
+      - homepage.icon=tautulli
+      - homepage.href=https://tautulli.${DOMAIN}
+      - homepage.description=Media Server Companion
+      - homepage.widget.type=tautulli
+      - homepage.widget.url=http://tautulli:8181
+      - homepage.widget.key=${TAUTULLI_API_KEY}
+      - traefik.enable=true
+      - traefik.http.routers.tautulli.rule=Host(`tautulli.${DOMAIN}`)
+    ports:
+      - 8181:8181
+    restart: unless-stopped
+    volumes:
+      - /var/lib/watchtower/tautulli:/config
   traefik:
     command:
       - --api.dashboard=true
@@ -157,6 +294,32 @@ services:
     volumes:
       - /var/lib/watchtower/letsencrypt:/letsencrypt
       - /var/run/docker.sock:/var/run/docker.sock
+  unpackerr:
+    image: golift/unpackerr
+    container_name: unpackerr
+    env_file: .env
+    environment:
+      # General config
+      - UN_DEBUG=false
+      - UN_INTERVAL=2m
+      - UN_START_DELAY=1m
+      - UN_RETRY_DELAY=5m
+      - UN_MAX_RETRIES=3
+      - UN_PARALLEL=1
+      - UN_FILE_MODE=0644
+      - UN_DIR_MODE=0755
+      # Folder Config
+      - UN_FOLDER_0_PATH=/downloads
+      - UN_FOLDER_0_EXTRACT_PATH=/downloads
+      - UN_FOLDER_0_DELETE_AFTER=10m
+      - UN_FOLDER_0_DELETE_ORIGINAL=false
+      - UN_FOLDER_0_DELETE_FILES=false
+      - UN_FOLDER_0_MOVE_BACK=false
+    ports:
+      - 5656:5656
+    restart: unless-stopped
+    volumes:
+      - ${DOWNLOADS_PATH:-/var/lib/watchtower/downloads}:/downloads
   watchtower:
     container_name: watchtower
     env_file: .env
