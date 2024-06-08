@@ -13,6 +13,31 @@ services:
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+  filebrowser:
+    container_name: filebrowser
+    env_file: .env
+    environment:
+      - FB_BASEURL=/filebrowser
+    hostname: filebrowser
+    image: hurlenko/filebrowser
+    labels:
+      - homepage.group=Tools
+      - homepage.name=File Browser
+      - homepage.icon=filebrowser
+      - homepage.href=https://finder.${DOMAIN}
+      - homepage.description=File managing interface
+      - traefik.enable=true
+      - traefik.http.routers.filebrowser.rule=host(`finder.${DOMAIN}`)
+      - traefik.http.services.filebrowser.loadbalancer.server.port=8080
+    ports:
+      - 8084:8080
+    restart: unless-stopped
+    volumes:
+      - ${MISC_PATH:-/var/lib/watchtower/misc}:/data/misc
+      - ${MOVIES_PATH:-/var/lib/watchtower/movies}:/data/movies
+      - ${MUSIC_PATH:-/var/lib/watchtower/music}:/data/music
+      - ${TVSHOWS_PATH:-/var/lib/watchtower/tvshows}:/data/tvshows
+      - /var/lib/watchtower/filebrowser:/config
   flaresolverr:
     container_name: flaresolverr
     env_file: .env
