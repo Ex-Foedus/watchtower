@@ -1,3 +1,19 @@
 ---
 # For configuration options and examples, please see:
 # https://gethomepage.dev/latest/configs/settings
+# Icons sourced from: https://pictogrammers.com/library/mdi/
+theme: dark
+layout:
+  Core:
+    icon: mdi-server-network
+    style: row
+    columns: 4
+  Monitoring:
+    icon: mdi-monitor-dashboard
+    style: row
+    columns: 4
+  Media:
+    icon: mdi-multimedia
+    useEqualHeights: true
+    style: row
+    columns: 4

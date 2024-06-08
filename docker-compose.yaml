@@ -8,12 +8,6 @@ services:
       - SERVICES=1
       - TASKS=1
     image: ghcr.io/tecnativa/docker-socket-proxy
-    labels:
-      - homepage.group=Networking
-      - homepage.name=Docker Socket Proxy
-      - homepage.icon=docker
-      - homepage.href=https://github.com/Tecnativa/docker-socket-proxy
-      - homepage.description=Restricted docker socket proxy
     ports:
       - 127.0.0.1:2375:2375
     restart: unless-stopped
@@ -28,11 +22,6 @@ services:
       - CAPTCHA_SOLVER=${CAPTCHA_SOLVER:-none}
     image: ghcr.io/flaresolverr/flaresolverr
     labels:
-      - homepage.group=Media
-      - homepage.name=Flaresolverr
-      - homepage.icon=flaresolverr
-      - homepage.href=https://flaresolverr.${DOMAIN}
-      - homepage.description=Proxy server to bypass Cloudflare protections
       - traefik.enable=true
       - traefik.http.routers.flaresolverr.rule=Host(`flaresolverr.${DOMAIN}`)
     ports:
@@ -53,7 +42,7 @@ services:
     hostname: gluetun
     image: qmcgaw/gluetun
     labels:
-      - homepage.group=Networking
+      - homepage.group=Core
       - homepage.name=Gluetun
       - homepage.icon=gluetun
       - homepage.href=https://gluetun.${DOMAIN}/v1/publicip/ip
@@ -332,7 +321,7 @@ services:
     hostname: traefik
     image: traefik
     labels:
-      - homepage.group=Networking
+      - homepage.group=Core
       - homepage.name=Traefik
       - homepage.icon=traefik
       - homepage.href=https://traefik.${DOMAIN}
