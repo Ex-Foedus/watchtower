@@ -1,5 +1,36 @@
 ---
 services:
+  docker-socket-proxy:
+    container_name: proxy
+    environment:
+      - CONTAINERS=1
+      - POST=0
+      - SERVICES=1
+      - TASKS=1
+    image: ghcr.io/tecnativa/docker-socket-proxy
+    labels:
+      - homepage.group=Networking
+      - homepage.name=Docker Socket Proxy
+      - homepage.icon=docker
+      - homepage.href=https://github.com/Tecnativa/docker-socket-proxy
+      - homepage.description=Restricted docker socket proxy
+    ports:
+      - 127.0.0.1:2375:2375
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+  homepage:
+    container_name: homepage
+    env_file: .env
+    image: ghcr.io/gethomepage/homepage
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.homepage.rule=Host(`watchtower.${DOMAIN}`)
+    ports:
+      - 3001:3000
+    restart: unless-stopped
+    volumes:
+      - /etc/watchtower/docker/homepage:/app/config
   jellyfin:
     container_name: jellyfin
     devices:
@@ -12,6 +43,14 @@ services:
     hostname: jellyfin
     image: jellyfin/jellyfin
     labels:
+      - homepage.group=Media
+      - homepage.name=Jellyfin
+      - homepage.icon=jellyfin
+      - homepage.href=https://jellyfin.${DOMAIN}
+      - homepage.description=Alternative Media server
+      - homepage.widget.type=jellyfin
+      - homepage.widget.url=https://jellyfin.${DOMAIN}
+      - homepage.widget.key=${JELLYFIN_API_KEY}
       - traefik.enable=true
       - traefik.http.routers.jellyfin.rule=host(`jellyfin.${DOMAIN}`)
       - traefik.http.services.jellyfin.loadbalancer.server.port=8096
@@ -48,8 +87,17 @@ services:
     hostname: watchtower
     image: plexinc/pms-docker:plexpass
     labels:
+      - homepage.group=Media
+      - homepage.name=Plex
+      - homepage.icon=plex
+      - homepage.href=https://watchtower.${DOMAIN_EXT}
+      - homepage.description=Media Server
+      - homepage.widget.type=plex
+      - homepage.widget.url=http://${HOST_IP}:32400
+      - homepage.widget.key=${PLEX_API_KEY}
+      - homepage.widget.fields=["streams", "movies", "tv", "albums"]
       - traefik.enable=true
-      - traefik.http.routers.plex.rule=host(`watchtower.${DOMAIN}`)
+      - traefik.http.routers.plex.rule=host(`plex.${DOMAIN}`)
       - traefik.http.services.plex.loadbalancer.server.port=32400
       - traefik.http.services.plex.loadbalancer.server.url=http://127.0.0.1:32400
     network_mode: host
@@ -87,6 +135,13 @@ services:
     hostname: traefik
     image: traefik
     labels:
+      - homepage.group=Networking
+      - homepage.name=Traefik
+      - homepage.icon=traefik
+      - homepage.href=https://traefik.${DOMAIN}
+      - homepage.description=Reverser Proxy
+      - homepage.widget.type=traefik
+      - homepage.widget.url=http://traefik:8080
       - traefik.enable=true
       - traefik.http.routers.dashboard.rule=Host(`traefik.${DOMAIN}`)
       - traefik.http.routers.dashboard.tls=true
