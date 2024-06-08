@@ -3,6 +3,7 @@
 # https://gethomepage.dev/latest/configs/settings
 # Icons sourced from: https://pictogrammers.com/library/mdi/
 theme: dark
+disableCollapse: true
 layout:
   Core:
     icon: mdi-server-network
@@ -17,3 +18,5 @@ layout:
     useEqualHeights: true
     style: row
     columns: 4
+  Bookmarks:
+    icon: mdi-bookmark-multiple

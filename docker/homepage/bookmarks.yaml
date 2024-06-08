@@ -1,3 +1,7 @@
 ---
 # For configuration options and examples, please see:
 # https://gethomepage.dev/latest/configs/bookmarks
+- Bookmarks:
+    - Watchtower:
+        - icon: mdi-github
+          href: https://github.com/jovalle/watchtower
