@@ -40,6 +40,38 @@ services:
     restart: unless-stopped
     volumes:
       - /var/lib/watchtower/flaresolverr:/config
+  gluetun:
+    cap_add:
+      - NET_ADMIN
+    container_name: gluetun
+    env_file: .env
+    environment:
+      - OPENVPN_PASSWORD="${OPENVPN_PASSWORD}"
+      - OPENVPN_USER="${OPENVPN_USER}"
+      - SERVER_NAMES="newyork434,newyork435,newyork439,newyork440"
+      - VPN_SERVICE_PROVIDER=private internet access
+    hostname: gluetun
+    image: qmcgaw/gluetun
+    labels:
+      - homepage.group=Networking
+      - homepage.name=Gluetun
+      - homepage.icon=gluetun
+      - homepage.href=https://gluetun.${DOMAIN}/v1/publicip/ip
+      - homepage.description=VPN server for containers
+      - homepage.widget.type=gluetun
+      - homepage.widget.url=http://gluetun:8000
+      - homepage.widget.fields=["public_ip", "region", "country"]
+      - traefik.enable=true
+      - traefik.http.routers.gluetun.rule=Host(`gluetun.${DOMAIN}`)
+      - traefik.http.services.gluetun.loadbalancer.server.port=8000
+    ports:
+      - 10095:10095
+      - 6881:6881
+      - 6881:6881/udp
+    restart: always
+    volumes:
+      - /dev/net/tun:/dev/net/tun
+      - /var/lib/watchtower/gluetun:/config
   homepage:
     container_name: homepage
     env_file: .env
@@ -172,6 +204,34 @@ services:
     volumes:
       - ${DOWNLOADS_PATH:-/var/lib/watchtower/downloads}:/downloads
       - /var/lib/watchtower/prowlarr:/config
+  qbittorrent:
+    container_name: qbittorrent
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      - WEBUI_PORT=10095
+    image: lscr.io/linuxserver/qbittorrent
+    labels:
+      - homepage.group=Media
+      - homepage.name=qBittorrent
+      - homepage.icon=qbittorrent
+      - homepage.href=https://qbittorrent.${DOMAIN}
+      - homepage.description=BitTorrent client for ISOs
+      - homepage.widget.type=qbittorrent
+      - homepage.widget.url=http://gluetun:10095
+      - homepage.widget.username=${QBITTORRENT_USER}
+      - homepage.widget.password=${QBITTORRENT_PASSWORD}
+      - homepage.widget.fields=["download", "upload", "seed", "leech"]
+      - traefik.enable=true
+      - traefik.http.routers.qbittorrent.rule=Host(`qbittorrent.${DOMAIN}`)
+      - traefik.http.services.qbittorrent.loadbalancer.server.port=10095
+    network_mode: "service:gluetun"
+    restart: unless-stopped
+    volumes:
+      - ${DOWNLOADS_PATH:-/var/lib/watchtower/downloads}:/downloads
+      - /var/lib/watchtower/qbittorrent:/config
   radarr:
     container_name: radarr
     depends_on:
