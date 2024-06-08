@@ -23,6 +23,9 @@ See `docker-compose.yaml` for the services deployed.
 
 - [Docker Socket Proxy](https://github.com/Tecnativa/docker-socket-proxy): Secured proxy for Homepage to watch Docker
 - [Homepage](https://gethomepage.dev): Easily configurable dashboard with plugins for numerous core components
+
+![image](https://github.com/jovalle/watchtower/assets/47045210/6c11573d-08c5-414c-8814-f11e244b796d)
+
 - [Jellyfin](https://jellyfin.org): Plex competitor. Currently running comparisons. One advantage for Jellyfin is the lack of a SaaS and support for more media types (comics, audiobooks)
 - [Node Exporter](https://github.com/prometheus/node_exporter): Presents host resource metrics to be consumed by Prometheus and displayed by Grafana
 - [Plex](https://plex.tv): Organizes and streams media
