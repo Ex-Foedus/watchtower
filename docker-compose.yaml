@@ -104,6 +104,32 @@ services:
       - ${MOVIES_PATH:-/var/lib/watchtower/movies}:/data/movies
       - ${TRANSCODE_PATH:-/dev/shm}:/transcode
       - ${TVSHOWS_PATH:-/var/lib/watchtower/tvshows}:/data/tvshows
+  lidarr:
+    container_name: lidarr
+    depends_on:
+      - prowlarr
+      - qbittorrent
+    env_file: .env
+    hostname: lidarr
+    image: lscr.io/linuxserver/lidarr
+    labels:
+      - homepage.group=Media
+      - homepage.name=Lidarr
+      - homepage.icon=lidarr
+      - homepage.href=https://lidarr.${DOMAIN}
+      - homepage.description=Personal Music Curator
+      - homepage.widget.type=lidarr
+      - homepage.widget.url=http://lidarr:8686
+      - homepage.widget.key=${LIDARR_API_KEY}
+      - traefik.enable=true
+      - traefik.http.routers.lidarr.rule=Host(`lidarr.${DOMAIN}`)
+    ports:
+      - 8686:8686
+    restart: unless-stopped
+    volumes:
+      - ${DOWNLOADS_PATH:-/var/lib/watchtower/downloads}:/downloads
+      - ${MUSIC_PATH:-/var/lib/watchtower/music}:/music
+      - /var/lib/watchtower/lidarr:/config
   node-exporter:
     command: --path.rootfs=/host
     container_name: node-exporter
@@ -169,6 +195,7 @@ services:
       - ${CONFIG_PATH:-/var/lib/watchtower/plex}:/config
       - ${MISC_PATH:-/var/lib/watchtower/misc}:/data/misc
       - ${MOVIES_PATH:-/var/lib/watchtower/movies}:/data/movies
+      - ${MUSIC_PATH:-/var/lib/watchtower/music}:/data/music
       - ${TRANSCODE_PATH:-/var/lib/watchtower/transcode}:/transcode
       - ${TVSHOWS_PATH:-/var/lib/watchtower/tvshows}:/data/tvshows
   portainer:

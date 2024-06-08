@@ -46,6 +46,7 @@ TZ="America/New_York"
 
 # apps
 JELLYFIN_API_KEY=REDACTED
+LIDARR_API_KEY=REDACTED
 OVERSEER_API_KEY=REDACTED
 PLEX_API_KEY=REDACTED
 PORTAINER_API_KEY=REDACTED
@@ -82,6 +83,8 @@ TVSHOWS_PATH=/mnt/whirlpool/tvshows
 DOCKER_HOST_IP=${HOST_IP}
 DOCKER_HOST="ssh://root@${DOCKER_HOST_IP}"
 ```
+
+⚠️ Virtually all docker compose services are leveraging `.env`. Changes to the file will trigger recreations of virtually all containers. May look into creating specific environment files for each container to address this. Wish I could just uses SOPS for inline encryption of `docker-compose.yaml`.
 
 ## 🚀 Deployment
 
